@@ -1,0 +1,225 @@
+import React, { useState } from 'react';
+import { Search, X, Edit, Save, Plus, Upload, UserPlus } from 'lucide-react';
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { ScrollArea } from "@/components/ui/scroll-area"
+
+const initialContacts = [
+  { id: 1, name: 'John Doe', phone: '123-456-7890', email: 'john@example.com', image: '/api/placeholder/100/100' },
+  { id: 2, name: 'Jane Smith', phone: '098-765-4321', email: 'jane@example.com', image: '/api/placeholder/100/100' },
+  { id: 3, name: 'Alice Johnson', phone: '555-123-4567', email: 'alice@example.com', image: '/api/placeholder/100/100' },
+  { id: 4, name: 'Bob Williams', phone: '777-888-9999', email: 'bob@example.com', image: '/api/placeholder/100/100' },
+  { id: 5, name: 'Emma Brown', phone: '444-333-2222', email: 'emma@example.com', image: '/api/placeholder/100/100' },
+];
+
+const RolodexApp = () => {
+  const [contacts, setContacts] = useState(initialContacts);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedContact, setSelectedContact] = useState(null);
+  const [editingContact, setEditingContact] = useState(null);
+  const [newField, setNewField] = useState({ key: '', value: '' });
+
+  const handleSearch = (event) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const filteredContacts = contacts.filter((contact) =>
+    Object.values(contact).some((value) =>
+      String(value).toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  );
+
+  const handleSelect = (contact) => {
+    setSelectedContact(contact);
+  };
+
+  const handleEdit = () => {
+    setEditingContact({ ...selectedContact });
+  };
+
+  const handleSave = () => {
+    if (editingContact.id) {
+      setContacts(contacts.map((c) => (c.id === editingContact.id ? editingContact : c)));
+    } else {
+      const newContact = { ...editingContact, id: Date.now() };
+      setContacts([...contacts, newContact]);
+    }
+    setSelectedContact(editingContact);
+    setEditingContact(null);
+  };
+
+  const handleDelete = () => {
+    setContacts(contacts.filter((c) => c.id !== selectedContact.id));
+    setSelectedContact(null);
+  };
+
+  const handleFieldChange = (key, value) => {
+    setEditingContact({ ...editingContact, [key]: value });
+  };
+
+  const handleAddField = () => {
+    if (newField.key && newField.value) {
+      setEditingContact({ ...editingContact, [newField.key]: newField.value });
+      setNewField({ key: '', value: '' });
+    }
+  };
+
+  const handleImageChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditingContact({ ...editingContact, image: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleNewContact = () => {
+    setEditingContact({ name: '', phone: '', email: '', image: '/api/placeholder/100/100' });
+  };
+
+  return (
+    <div className="flex flex-col h-screen bg-gray-100">
+      <div className="p-4 bg-white shadow-md z-10">
+        <div className="max-w-4xl mx-auto flex items-center">
+          <Search className="mr-2" />
+          <Input
+            type="text"
+            placeholder="Search contacts..."
+            value={searchTerm}
+            onChange={handleSearch}
+            className="flex-grow"
+          />
+          <Button variant="ghost" size="icon" className="ml-2" onClick={handleNewContact}>
+            <UserPlus className="h-6 w-6" />
+          </Button>
+        </div>
+      </div>
+      
+      <div className="flex-grow overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="max-w-4xl mx-auto p-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {filteredContacts.map((contact) => (
+                <div key={contact.id} className="relative cursor-pointer" onClick={() => handleSelect(contact)}>
+                  <img src={contact.image} alt={contact.name} className="w-full h-40 object-cover rounded-lg shadow-md" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg opacity-0 hover:opacity-100 transition-opacity">
+                    <p className="text-white text-center font-semibold">{contact.name}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </ScrollArea>
+      </div>
+
+      {selectedContact && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-96 max-h-[90vh] overflow-y-auto">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>{selectedContact.name}</CardTitle>
+              <Button variant="ghost" size="icon" onClick={() => setSelectedContact(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="relative w-24 h-24 mb-2 mx-auto">
+                  <img src={selectedContact.image} alt={selectedContact.name} className="w-full h-full object-cover rounded-full" />
+                </div>
+                {Object.entries(selectedContact).map(([key, value]) => (
+                  key !== 'id' && key !== 'image' && (
+                    <p key={key} className="text-sm">
+                      <strong>{key}:</strong> {value}
+                    </p>
+                  )
+                ))}
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" onClick={handleEdit}>
+                Edit
+              </Button>
+              <Button variant="destructive" onClick={handleDelete}>
+                Delete
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
+
+      {editingContact && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-96 max-h-[90vh] overflow-y-auto">
+            <CardHeader>
+              <CardTitle>{editingContact.id ? 'Edit Contact' : 'New Contact'}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="relative w-24 h-24 mb-2 mx-auto">
+                  <img src={editingContact.image} alt={editingContact.name} className="w-full h-full object-cover rounded-full" />
+                  <label htmlFor="image-upload" className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full cursor-pointer">
+                    <Upload className="text-white" />
+                  </label>
+                  <Input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </div>
+                {Object.entries(editingContact).map(([key, value]) => (
+                  key !== 'id' && key !== 'image' && (
+                    <div key={key} className="flex items-center space-x-2">
+                      <Input
+                        value={key}
+                        onChange={(e) => {
+                          const newKey = e.target.value;
+                          const { [key]: oldValue, ...rest } = editingContact;
+                          setEditingContact({ ...rest, [newKey]: oldValue });
+                        }}
+                      />
+                      <Input
+                        value={value}
+                        onChange={(e) => handleFieldChange(key, e.target.value)}
+                      />
+                    </div>
+                  )
+                ))}
+                <div className="flex items-center space-x-2">
+                  <Input
+                    placeholder="New field"
+                    value={newField.key}
+                    onChange={(e) => setNewField({ ...newField, key: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Value"
+                    value={newField.value}
+                    onChange={(e) => setNewField({ ...newField, value: e.target.value })}
+                  />
+                  <Button variant="outline" size="icon" onClick={handleAddField}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" onClick={() => setEditingContact(null)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSave}>
+                <Save className="mr-2 h-4 w-4" />
+                Save
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default RolodexApp;
